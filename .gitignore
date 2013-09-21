@@ -1,0 +1,10 @@
+.classpath
+.project
+.settings/
+.DS_Store
+*.class
+build/
+dist/
+lib/
+test/output/
+

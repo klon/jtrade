@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="jtrade" default="jar" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
+	<property environment="env" />
+	<property name="src" value="./src/main/java" />
+	<property name="build" value="./build" />
+	<property name="dist" value="./dist" />
+	<property name="deps" value="./lib" />
+	<property name="jar" value="jtrade.jar" />
+	<property name="testsrc" value="./src/test/java" />
+	<property name="testoutput" value="./test/output" />
+
+	<taskdef name="testng" classname="org.testng.TestNGAntTask" />
+
+	<target name="ivy">
+	  <taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpath="${ivy.home}/${ivy.jar.name}"/>
+	  <ivy:resolve/>
+	</target>
+	
+	<target name="init" depends="ivy">
+		<tstamp />
+		<mkdir dir="${deps}" />
+		<mkdir dir="${build}" />
+		<mkdir dir="${dist}" />
+		<mkdir dir="${testoutput}" />
+	</target>
+
+	<target name="clean">
+		<delete includeEmptyDirs="true">
+			<fileset dir="${build}" />
+		</delete>
+	</target>
+	
+	<target name="fetchdeps" description="Fetch dependencies with ivy">
+		<ivy:settings file="ivysettings.xml" />
+		<ivy:retrieve />
+	</target>
+
+	<target name="classpath" description="Assemble classpath">
+		<path id="libClasspath">
+			<fileset dir="${deps}">
+				<include name="**/*.jar" />
+			</fileset>
+		</path>
+	</target>
+
+	<target name="compile" description="Compile project" depends="init, classpath">
+		<javac destdir="${build}" target="1.7" source="1.7" debug="true" deprecation="false" optimize="true" failonerror="true" includeantruntime="false">
+			<src path="${src}" />
+			<classpath refid="libClasspath" />
+			<!-- <compilerarg value="-Xlint:unchecked"/>-->
+			<!-- <compilerarg value="-Xlint:deprecation"/>-->
+		</javac>
+	</target>
+
+	<target name="copyresources" description="Copy project resources to build dir" depends="init">
+		<copy todir="${build}" includeEmptyDirs="false">
+			<fileset dir="${src}" excludes="**/*.java" />
+		</copy>
+	</target>
+
+	<target name="jar" description="Create jar" depends="init, compile, copyresources">
+		<jar jarfile="${dist}/${jar}" includes="**/*" excludes="" basedir="${build}" />
+	</target>
+	
+	<target name="pom">
+	  <ivy:makepom ivyfile="ivy.xml" pomfile="${dist}/${ant.project.name}.pom">
+	    <mapping conf="default" scope="compile"/>
+	  </ivy:makepom>
+	</target>
+	
+	<target name="publish" depends="jar, pom" description="publish to local m2 repos">
+	  <ivy:publish resolver="localmaven-publish" forcedeliver="true" overwrite="true" publishivy="false">
+	    <artifacts pattern="${dist}/[artifact].[ext]"/>
+	  </ivy:publish>
+	</target>
+
+	<target name="compiletest" description="Compile tests for project" depends="init, classpath">
+		<javac destdir="${build}" target="1.7" source="1.7" debug="true" deprecation="false" optimize="true" failonerror="true" includeantruntime="false">
+			<src path="${testsrc}" />
+			<classpath refid="libClasspath" />
+			<!-- <compilerarg value="-Xlint:unchecked"/>-->
+			<!-- <compilerarg value="-Xlint:deprecation"/>-->
+		</javac>
+	</target>
+
+	<target name="test" description="Run tests" depends="compile, compiletest">
+		<testng outputDir="${testoutput}" haltOnFailure="true" verbose="2">
+			<classpath location="${build}" />
+			<classfileset dir="${build}/" includes="**/test/**/*.class" excludes="eclipse/**/*" />
+			<classpath refid="libClasspath" />
+		</testng>
+	</target>
+
+</project>
