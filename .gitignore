@@ -3,6 +3,9 @@
 .settings/
 .DS_Store
 *.class
+*.jar
+*.war
+*.ear
 build/
 dist/
 lib/
