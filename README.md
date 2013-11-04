@@ -1,6 +1,13 @@
 # jtrade
 A framework for developing, backtesting and deploying automated trading strategies.
 
+### Features
+* Event based architecture supporting both bar and tick data.
+* Backtesting engine with performance metrics
+* Market data feed with support for streaming data from disk or Interactive Brokers
+* Order and account integration with Interactive Brokers
+* TimeSeries classes inspired by Pandas
+
 ### Requirements
 jtrade needs JDK 7 and Ant/Ivy installed in order to build.
 
