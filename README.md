@@ -5,6 +5,7 @@ A framework for developing, backtesting and deploying automated trading strategi
 * Event based architecture supporting both bar and tick data.
 * Backtesting engine with performance metrics
 * Market data feed with support for streaming data from disk or Interactive Brokers
+* Historical data download support for Yahoo and Interactive Brokers
 * Order and account integration with Interactive Brokers
 * TimeSeries classes inspired by Pandas
 
