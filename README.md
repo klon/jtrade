@@ -9,6 +9,9 @@ A framework for developing, backtesting and deploying automated trading strategi
 * Order and account integration with Interactive Brokers
 * TimeSeries classes inspired by Pandas
 
+### License
+Apache License (2.0)
+
 ### Requirements
 jtrade needs JDK 7 and Ant/Ivy installed in order to build.
 
