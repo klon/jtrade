@@ -4,15 +4,20 @@ import java.io.File;
 
 import jtrade.Symbol;
 import jtrade.SymbolFactory;
+import jtrade.indicator.MA;
 import jtrade.marketfeed.Bar;
 import jtrade.marketfeed.BarListener;
 import jtrade.trader.Position;
+import jtrade.trader.Trade;
+import jtrade.util.Configurable;
 
 import org.joda.time.DateTime;
 
 public class TestStrategy extends BaseStrategy implements BarListener {
-	static Symbol symbol = SymbolFactory.getSymbol("AAPL-SMART-USD-STOCK");
+	public Configurable<Symbol> SYMBOL = new Configurable<Symbol>("SYMBOL", SymbolFactory.getSymbol("SPY-ARCA-USD-STOCK"));
 
+	MA ma;
+	
 	public TestStrategy() {
 		super();
 	}
@@ -20,32 +25,35 @@ public class TestStrategy extends BaseStrategy implements BarListener {
 	@Override
 	public void init() {
 		setVerbose(true);
-		setActive(true);
-		marketFeed.addBarListener(symbol, this);
+		ma = new MA(100);
+		marketFeed.addBarListener(SYMBOL.get(), ma);
+		marketFeed.addBarListener(SYMBOL.get(), this);
 	}
 
 	@Override
 	public void onBar(Bar bar) {
-		if (bar.getDateTime().equals(new DateTime(2013, 1, 2, 16, 1, 0, 0))) {
-			trader.placeOrder(bar.getSymbol(), 2, "testref_buy");
-		} else if (bar.getDateTime().equals(new DateTime(2013, 1, 2, 16, 50, 0, 0))) {
-			trader.placeOrder(bar.getSymbol(), -1, "testref_sell");
+		Position position = trader.getPortfolio().getPosition(SYMBOL.get());
+		if (position.isFlat() && bar.getClose() >= ma.get()) {
+			setPosition(SYMBOL.get(), (int)(trader.getPortfolio().getCashValue() / bar.getClose()));
+		} else if (bar.getClose() < ma.get()) {
+			setPosition(SYMBOL.get(), 0);
 		}
 	}
 
 	public static void main(String[] args) {
 		try {
 			TestStrategy strategy = new TestStrategy();
-			File dataDir = new File("~/marketdata/ib");
-			DateTime fromDate = new DateTime(2013, 1, 2, 16, 0, 0, 0);
-			DateTime toDate = new DateTime(2013, 1, 2, 17, 0, 0, 0);
+			File dataDir = new File("~/marketdata/yahoo");
+			DateTime fromDate = new DateTime(2004, 1, 1, 0, 0, 0, 0);
+			DateTime toDate = new DateTime(2012, 1, 1, 0, 0, 0, 0);
 
-			StrategySim sim = new StrategySim(strategy, dataDir, fromDate, toDate, false, 60, symbol);
+			StrategySim sim = new StrategySim(strategy, dataDir, fromDate, toDate, false, 86400, strategy.SYMBOL.get());
 			sim.run();
 
-			for (Position p : strategy.getTrader().getPortfolio().getPositions()) {
-				System.out.println(p);
+			for (Trade t : strategy.getTrader().getPerformanceTracker().getTrades()) {
+				System.out.println(t);
 			}
+			System.out.println(strategy.getTrader().getPerformanceTracker());
 			strategy.getRecorder().plot();
 
 		} catch (Exception e) {

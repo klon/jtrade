@@ -64,7 +64,7 @@ public class Portfolio {
 		return new ArrayList<Position>(positions.values());
 	}
 	
-	public double getPortfolioValue() {
+	public double getPositionsValue() {
 		double total = 0.0;
 		for (Position p : positions.values()) {
 			Tick lastTick = marketFeed.getLastTick(p.getSymbol());
@@ -73,6 +73,10 @@ public class Portfolio {
 			}
 		}
 		return total;
+	}
+	
+	public double getPortfolioValue() {
+		return getCashValue() + getPositionsValue();
 	}
 	
 	public double getCashValue() {

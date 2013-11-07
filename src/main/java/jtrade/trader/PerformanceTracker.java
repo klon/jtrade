@@ -21,12 +21,10 @@ public class PerformanceTracker {
 	MarketFeed marketFeed;
 	DateTime start;
 	DateTime end;
-	TimeSeries cashByDate;
-	TimeSeries positionsByDate;
+	TimeSeries portfolioByDate;
 	List<Trade> trades;
 	
 	boolean needsUpdate;
-	TimeSeries portfolioByDate;
 	TimeSeries pnlByDate;
 	TimeSeries returnsByDate;
 	TimeSeries cumPnlByDate;
@@ -48,10 +46,13 @@ public class PerformanceTracker {
 
 	public PerformanceTracker(MarketFeed marketFeed) {
 		this.marketFeed = marketFeed;
-		cashByDate = new TimeSeriesMap();
-		positionsByDate = new TimeSeriesMap();
+		portfolioByDate = new TimeSeriesMap();
 		trades = new ArrayList<Trade>(128);
 		needsUpdate = true;
+		pnlByDate = new TimeSeriesArray();
+		returnsByDate = new TimeSeriesArray();
+		cumPnlByDate = new TimeSeriesArray();
+		cumReturnsByDate = new TimeSeriesArray();
 		numTrades = 0;
 		tradesPerDay = 0;
 		profitLoss = Double.NaN;
@@ -75,8 +76,7 @@ public class PerformanceTracker {
 		if (end == null || date.isAfter(end)) {
 			end = date;
 		}
-		positionsByDate.set(date, portfolio.getPortfolioValue());
-		cashByDate.set(date, portfolio.getCashValue());
+		portfolioByDate.set(date, portfolio.getPortfolioValue());
 		needsUpdate = true;
 	}
 	
@@ -86,21 +86,13 @@ public class PerformanceTracker {
 	}
 
 	public void updateMetrics() {
-		if (!needsUpdate || positionsByDate.size() <= 1) {
+		if (!needsUpdate || portfolioByDate.size() <= 1) {
 			return;
 		}
-		portfolioByDate = new TimeSeriesArray(positionsByDate).add(cashByDate);
-		pnlByDate = portfolioByDate.diff(1);
+		pnlByDate = new TimeSeriesArray(portfolioByDate.diff(1));
 		returnsByDate = portfolioByDate.arithReturn(1);
 		cumPnlByDate = pnlByDate.cumsum();
 		returnsByDate = returnsByDate.cumsum();
-		
-		System.out.println(portfolioByDate);
-		System.out.println(pnlByDate);
-		System.out.println(returnsByDate);
-		System.out.println(cumPnlByDate);
-		System.out.println(returnsByDate);
-
 		double days = ((double)portfolioByDate.size());
 		double annualRiskFreeRate = RISKFREE_RATE.get();
 		double businessDaysPerYear = BUSINESS_DAYS_PER_YEAR.get();
@@ -118,18 +110,17 @@ public class PerformanceTracker {
 				loss -= pl;
 			}
 			cumProfitLoss += pl;
-			peak = Math.max(peak, cumProfitLoss);
-			mdd = Math.max(mdd, (peak - cumProfitLoss) / peak);
 			profitSquared += pl > 0 ? pl * pl : 0;
+			if (cumProfitLoss != 0.0) {
+				peak = Math.max(peak, cumProfitLoss);
+				mdd = Math.max(mdd, peak - cumProfitLoss);
+			}
 		}
 		int l = 0;
-		int s = 0;
 		int w = 0;
 		for (Trade t : trades) {
 			if (t.getQuantity() > 0) {
 				l++;
-			} else {
-				s++;
 			}
 			if (t.getProfitLoss() >= 0) {
 				w++;
@@ -143,12 +134,14 @@ public class PerformanceTracker {
 		stdReturn = returnsByDate.std();
 		annualizedReturn = ((portfolioByDate.last() - portfolioByDate.first()) / portfolioByDate.first()) / (days / businessDaysPerYear);
 		performanceIndex = numTrades != 0 ? (Math.sqrt(numTrades) * (cumProfitLoss / numTrades)) / (Math.sqrt(numTrades * profitSquared - cumProfitLoss * cumProfitLoss) / numTrades) : Double.NaN;
-		profitFactor = loss != 0.0 ? profit / loss : Double.NaN;
+		profitFactor = loss != 0.0 ? profit / loss : Double.POSITIVE_INFINITY;
 		sharpeRatio = ((avgReturn - (annualRiskFreeRate / businessDaysPerYear)) / stdReturn) * Math.sqrt(businessDaysPerYear);
-		maxDrawDown = mdd;
+		maxDrawDown = -mdd;
 		winRate = ((double)w) / numTrades;
-		longShort = s > 0 ? ((double)l) / s : 1.0;
+		longShort = numTrades > 0 ? ((double)l) / numTrades : 1.0;
 		expectancy = (winRate * (profit / w)) - ((1 - winRate) * (loss / (numTrades - w)));
+		
+		needsUpdate = false;
 	}
 	
 	public MarketFeed getMarketFeed() {
@@ -163,87 +156,97 @@ public class PerformanceTracker {
 		return end;
 	}
 
-	public TimeSeries getCashByDate() {
-		return cashByDate;
-	}
-
-	public TimeSeries getPositionsByDate() {
-		return positionsByDate;
-	}
-
 	public List<Trade> getTrades() {
 		return trades;
 	}
 
 	public TimeSeries getPortfolioByDate() {
+		updateMetrics();
 		return portfolioByDate;
 	}
 
 	public TimeSeries getPnlByDate() {
+		updateMetrics();
 		return pnlByDate;
 	}
 
 	public TimeSeries getReturnsByDate() {
+		updateMetrics();
 		return returnsByDate;
 	}
 
 	public TimeSeries getCumPnlByDate() {
+		updateMetrics();
 		return cumPnlByDate;
 	}
 
 	public TimeSeries getCumReturnsByDate() {
+		updateMetrics();
 		return cumReturnsByDate;
 	}
 
 	public int getNumTrades() {
+		updateMetrics();
 		return numTrades;
 	}
 	
 	public double getTradesPerDay() {
+		updateMetrics();
 		return tradesPerDay;
 	}
 
 	public double getProfitLoss() {
+		updateMetrics();
 		return profitLoss;
 	}
 
 	public double getAvgReturn() {
+		updateMetrics();
 		return avgReturn;
 	}
 
 	public double getStdReturn() {
+		updateMetrics();
 		return stdReturn;
 	}
 
 	public double getAnnualizedReturn() {
+		updateMetrics();
 		return annualizedReturn;
 	}
 
 	public double getPerformanceIndex() {
+		updateMetrics();
 		return performanceIndex;
 	}
 
 	public double getSharpeRatio() {
+		updateMetrics();
 		return sharpeRatio;
 	}
 
 	public double getProfitFactor() {
+		updateMetrics();
 		return profitFactor;
 	}
 
 	public double getMaxDrawDown() {
+		updateMetrics();
 		return maxDrawDown;
 	}
 
 	public double getWinRate() {
+		updateMetrics();
 		return winRate;
 	}
 
 	public double getLongShort() {
+		updateMetrics();
 		return longShort;
 	}
 	
 	public double getExpectancy() {
+		updateMetrics();
 		return expectancy;
 	}
 

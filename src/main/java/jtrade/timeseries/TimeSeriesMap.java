@@ -964,7 +964,7 @@ public class TimeSeriesMap implements TimeSeries {
 			}
 		} else {
 			sb.append("[");
-			DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("yyyyMMdd HH:mm:ss");
+			DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
 			int i = 0;
 			for (TimeSeriesValuePair vp : this) {
 				if (i++ != 0) {

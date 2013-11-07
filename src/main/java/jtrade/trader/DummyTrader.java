@@ -7,9 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import jtrade.Symbol;
-import jtrade.SymbolFactory;
 import jtrade.marketfeed.Bar;
-import jtrade.marketfeed.BarFileMarketFeed;
 import jtrade.marketfeed.BarListener;
 import jtrade.marketfeed.IBMarketFeed;
 import jtrade.marketfeed.MarketFeed;
@@ -25,25 +23,23 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MarkerFactory;
 
 public class DummyTrader implements Trader, MarketListener, BarListener, TickListener {
-
-	protected static final Logger defaultLogger = LoggerFactory.getLogger(DummyTrader.class);
-	protected static final Logger blotter = LoggerFactory.getLogger("blotter");
+	private static final Logger logger = LoggerFactory.getLogger(DummyTrader.class);
+	private static final Logger blotter = LoggerFactory.getLogger("blotter");
 
 	public final Configurable<Integer> EXECUTION_DELAY_MILLIS = new Configurable<Integer>("EXECUTION_DELAY_MILLIS", 500);
-	public final Configurable<String> BASE_CURRENCY = new Configurable<String>("BASE_CURRENCY", "USD");
+	public final Configurable<String> BASE_CURRENCY = new Configurable<String>("BASE_CURRENCY", "EUR");
 	public final Configurable<Double> INITIAL_CAPITAL = new Configurable<Double>("INITIAL_CAPITAL", 10000.0);
 	public final Configurable<Double> EXCHANGE_RATE_USD = new Configurable<Double>("EXCHANGE_RATE_USD", 1.0);
-	public final Configurable<Double> EXCHANGE_RATE_SEK = new Configurable<Double>("EXCHANGE_RATE_SEK", 0.1555);
-	public final Configurable<Double> EXCHANGE_RATE_EUR = new Configurable<Double>("EXCHANGE_RATE_EUR", 1.3574);
-	public final Configurable<Double> EXCHANGE_RATE_GBP = new Configurable<Double>("EXCHANGE_RATE_GBP", 1.6084);
+	public final Configurable<Double> EXCHANGE_RATE_SEK = new Configurable<Double>("EXCHANGE_RATE_SEK", 1.0);
+	public final Configurable<Double> EXCHANGE_RATE_EUR = new Configurable<Double>("EXCHANGE_RATE_EUR", 1.0);
+	public final Configurable<Double> EXCHANGE_RATE_GBP = new Configurable<Double>("EXCHANGE_RATE_GBP", 1.0);
 	public final Configurable<Double> COMMISSION_MIN = new Configurable<Double>("COMMISSION_MIN", 0.0);
 	public final Configurable<Double> COMMISSION_MAX = new Configurable<Double>("COMMISSION_MIN", 0.0);
 	public final Configurable<Double> COMMISSION_PER_SHARE = new Configurable<Double>("COMMISSION_MIN", 0.0);
 	public final Configurable<Double> COMMISSION_RATE = new Configurable<Double>("COMMISSION_MIN", 0.0);
+	public final Configurable<Boolean> VERBOSE = new Configurable<Boolean>("VERBOSE", false);
 	
 	protected MarketFeed marketFeed;
-	protected Logger logger;
-	protected boolean verbose;
 	protected List<OrderListener> orderListeners;
 	protected boolean connected;
 	protected int nextValidOrderId;
@@ -54,21 +50,7 @@ public class DummyTrader implements Trader, MarketListener, BarListener, TickLis
 	protected Commission commission;
 
 	public DummyTrader(MarketFeed marketFeed) {
-		this(marketFeed, defaultLogger, false);
-	}
-
-	public DummyTrader(MarketFeed marketFeed, Logger logger) {
-		this(marketFeed, logger, false);
-	}
-
-	public DummyTrader(MarketFeed marketFeed, boolean verbose) {
-		this(marketFeed, defaultLogger, verbose);
-	}
-
-	public DummyTrader(MarketFeed marketFeed, Logger logger, boolean verbose) {
 		this.marketFeed = marketFeed;
-		this.logger = logger;
-		this.verbose = verbose;
 		orderListeners = new ArrayList<OrderListener>();
 		openOrdersById = new ConcurrentHashMap<Integer, OpenOrder>();
 		portfolio = new Portfolio(marketFeed);
@@ -81,7 +63,7 @@ public class DummyTrader implements Trader, MarketListener, BarListener, TickLis
 		performanceTracker = new PerformanceTracker(marketFeed);
 		commission = new Commission(0.0, 0.0, 0.0, 0.0, 0.0);
 		if (marketFeed instanceof IBMarketFeed) {
-			verbose = true;
+			Configurable.configure(VERBOSE, true);
 		}
 	}
 	
@@ -97,7 +79,9 @@ public class DummyTrader implements Trader, MarketListener, BarListener, TickLis
 
 	@Override
 	public void connect() {
-		logger.info("Connected");
+		if (VERBOSE.get()) {
+			logger.info("Connected");
+		}
 		connected = true;
 		marketFeed.addMarketListener(this);
 		try {
@@ -109,13 +93,16 @@ public class DummyTrader implements Trader, MarketListener, BarListener, TickLis
 
 	@Override
 	public void disconnect() {
-		logger.info("Disconnected");
+		if (VERBOSE.get()) {
+			logger.info("Disconnected");
+		}
 		connected = false;
 		try {
 			marketFeed.removeBarListener(this);
 		} catch (UnsupportedOperationException e) {
 			marketFeed.removeTickListener(this);
 		}
+
 	}
 
 	@Override
@@ -176,7 +163,7 @@ public class DummyTrader implements Trader, MarketListener, BarListener, TickLis
 	public void cancelOrder(Symbol symbol, OrderType orderType) {
 		List<OpenOrder> openOrders = getOpenOrders(symbol, orderType);
 		if (openOrders.isEmpty()) {
-			if (verbose) {
+			if (VERBOSE.get()) {
 				logger.info("Cannot cancel order, no open order found for {} {}", new Object[] { symbol, orderType });
 			}
 			return;
@@ -189,7 +176,7 @@ public class DummyTrader implements Trader, MarketListener, BarListener, TickLis
 	@Override
 	public void cancelOrder(OpenOrder openOrder) {
 		openOrder.setCancelled();
-		if (verbose) {
+		if (VERBOSE.get()) {
 			logger.info("Cancelled order {}", openOrder);
 		}
 		for (OrderListener listener : orderListeners) {
@@ -256,7 +243,7 @@ public class DummyTrader implements Trader, MarketListener, BarListener, TickLis
 		openOrder = new OpenOrder(orderId, symbol, type, quantity, price, stopPrice, trailingStopOffset, lastTick.getDateTime(), reference);
 		openOrdersById.put(orderId, openOrder);
 
-		if (verbose) {
+		if (VERBOSE.get()) {
 			logger.info("Placed {}", openOrder);
 		}
 
@@ -351,7 +338,7 @@ public class DummyTrader implements Trader, MarketListener, BarListener, TickLis
 				}
 				openOrder.update(fillQuantity, fillPrice, dt);
 
-				if (verbose) {
+				if (VERBOSE.get()) {
 					logExecution(openOrder, fillQuantity);
 				}
 
@@ -359,18 +346,16 @@ public class DummyTrader implements Trader, MarketListener, BarListener, TickLis
 					DateTime fillDate = openOrder.getFillDate();
 					double commissionAmount = commission.calculate(openOrder.getQuantityFilled(), openOrder.getAvgFillPrice());
 					openOrder.setCommission(commissionAmount);
-
-					portfolio.addCash(symbol.getCurrency(), -fillQuantity * fillPrice);
 					Position position = portfolio.getPosition(symbol);
 					double[] values = position.update(fillDate, fillQuantity, fillPrice, commissionAmount);
-					
 					if (values[0] != 0.0) {
+						portfolio.addCash(symbol.getCurrency(), values[3]);
 						performanceTracker.updateTrades(fillDate, symbol, -(int)values[0], values[1], values[2], values[3]);
 					}
 					
-					if (verbose) {
+					if (VERBOSE.get()) {
 						logger.info("Filled {}", openOrder);
-						logTrade(openOrder, position.getQuantity(), values[0], values[2], values[3]);
+						logTrade(openOrder, position.getQuantity(), values[0], values[3], values[4]);
 					}
 
 					for (OrderListener listener : orderListeners) {
@@ -430,11 +415,11 @@ public class DummyTrader implements Trader, MarketListener, BarListener, TickLis
 	
 	@Override
 	public void onDay(DateTime dateTime) {
-		processPerformanceTracker(dateTime);
 	}
 
 	@Override
 	public void onHour(DateTime dateTime) {
+		processPerformanceTracker(dateTime);
 	}
 
 	@Override
@@ -483,41 +468,4 @@ public class DummyTrader implements Trader, MarketListener, BarListener, TickLis
 	public void setCommission(Commission commission) {
 		this.commission = commission;
 	}
-
-	public static void main(String[] args) {
-		MarketFeed marketFeed = new BarFileMarketFeed("~/marketdata/ib", "20130601", "20130701", "AAPL-SMART-USD-STOCK");
-		Trader trader = new DummyTrader(marketFeed);
-
-		try {
-			// Symbol s = SymbolFactory.getESFutureSymbol(new DateTime(2013, 6,
-			// 6, 0,
-			// 0, 0, 0));
-			Symbol s = SymbolFactory.getSymbol("AAPL-SMART-USD-STOCK");
-			marketFeed.connect();
-			trader.connect();
-			Thread.sleep(2000);
-
-			try {
-				trader.placeOrder(s, 1, "testref1");
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			Thread.sleep(2000);
-
-			try {
-				trader.placeOrder(s, -1, "testref2");
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			Thread.sleep(2000);
-
-			trader.cancelOrder(s, null);
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			trader.disconnect();
-		}
-	}
-
 }

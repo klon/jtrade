@@ -74,7 +74,7 @@ public class Position {
 			this.costBasis = Double.NaN;
 			this.commission = Double.NaN;
 			this.quantity = 0;
-			values = new double[] { quantityRealized, costBasis, priceIncCommission, quantityRealized * (costBasis - priceIncCommission), 0.0 };
+			values = new double[] { quantityRealized, costBasis, priceIncCommission, quantityRealized * (costBasis - priceIncCommission) * multiplier , 0.0 };
 		} else {
 			this.commission = commission;
 			if ((quantity > 0 && quantityChange > 0) || (quantity < 0 && quantityChange < 0)) {

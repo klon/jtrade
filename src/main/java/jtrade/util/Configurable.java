@@ -11,13 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Configurable<T> {
 	private static final Logger logger = LoggerFactory.getLogger(Configurable.class);
-	private static List<Configurable<?>> configurables = new ArrayList<Configurable<?>>();
+	private static ConcurrentHashMap<String, Configurable<?>> configurables = new ConcurrentHashMap<String, Configurable<?>>();
 	private static Properties configuration;
 
 	/**
@@ -94,7 +95,7 @@ public class Configurable<T> {
 		this.min = min;
 		this.max = max;
 
-		configurables.add(this);
+		configurables.put(this.name, this);
 
 		Object value = configuration.get(this.name);
 		if (value != null) {
@@ -129,36 +130,19 @@ public class Configurable<T> {
 	}
 
 	/**
-	 * Returns the container class of this configurable (the class where this
-	 * configurable is defined as a <code>public static</code> field.
+	 * Returns the container class of this configurable.
 	 * 
-	 * @return the container class or <code>null</code> if unknown (e.g. J2ME).
+	 * @return the container class
 	 */
 	public Class<?> getContainer() {
 		return container;
 	}
 
 	/**
-	 * Returns the field name of this configurable (for example <code>
-	 * "javolution.context.ConcurrentContext#MAXIMUM_CONCURRENCY"</code>) for
-	 * {@link javolution.context.ConcurrentContext#MAXIMUM_CONCURRENCY}.
-	 * 
-	 * @return this configurable name or <code>null</code> if the name of this
-	 *         configurable is unknown (e.g. J2ME).
+	 * Returns the field name of this configurable
+	 * @return this configurable name
 	 */
 	public String getName() {
-		// if (name == null) {
-		// try {
-		// Collection<Field> fields = Util.getFields(container);
-		// for (Field f : fields) {
-		// if (f.get(null) == this) {
-		// name = container.getName() + '#' + f.getName();
-		// }
-		// }
-		// } catch (Exception e) {
-		// throw new IllegalStateException(e);
-		// }
-		// }
 		return name;
 	}
 
@@ -199,11 +183,7 @@ public class Configurable<T> {
 			if (sep >= 0) { // If inner class, remove suffix.
 				className = className.substring(0, sep);
 			}
-			return Class.forName(className); // We use the caller class loader
-			// (and
-			// avoid dependency to Reflection
-			// utility).
-
+			return Class.forName(className);
 		} catch (IllegalArgumentException e) {
 			throw e;
 		} catch (Exception e) {
@@ -212,32 +192,13 @@ public class Configurable<T> {
 	}
 
 	public static Configurable<?> getInstance(String name, Object obj) {
-		Class<?> cls = null;
-		if (obj == null) {
-			int sep = name.lastIndexOf('#');
-			if (sep < 0) {
-				throw new IllegalArgumentException("Object must be specified when name is not qualified");
-			}
-			String className = name.substring(0, sep);
-			name = name.substring(sep + 1);
-			try {
-				cls = Class.forName(className);
-			} catch (ClassNotFoundException e1) {
-				logger.warn("Class {} not found", className);
-				return null;
-			}
-		} else {
-			cls = obj.getClass();
-		}
-		Field field = Util.getField(cls, name);
+		Field field = Util.getField(obj.getClass(), name);
 		if (field == null) {
 			logger.warn("Configurable {} not found", name);
 			return null;
 		}
 		try {
 			return (Configurable<?>) field.get(obj);
-		} catch (NullPointerException e) {
-			return null;
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			return null;
@@ -247,9 +208,7 @@ public class Configurable<T> {
 	/**
 	 * Sets the run-time value of the specified configurable. If the configurable
 	 * value is different from the previous one, then {@link #notifyChange} is
-	 * called. This method raises a <code>SecurityException</code> if the
-	 * specified configurable cannot be {@link SecurityContext#isConfigurable
-	 * reconfigured}.
+	 * called. 
 	 * 
 	 * @param configurable
 	 *          the configurable being configured.
@@ -257,8 +216,6 @@ public class Configurable<T> {
 	 *          the new run-time value.
 	 * @throws IllegalArgumentException
 	 *           if <code>value</code> is <code>null</code>.
-	 * @throws SecurityException
-	 *           if the specified configurable cannot be modified.
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T> void configure(Configurable<T> configurable, Object object) throws SecurityException {
@@ -290,7 +247,7 @@ public class Configurable<T> {
 				Configurable.configure(cfg, Util.coerceType(value, cfg.getDefault().getClass()));
 			}
 
-			for (Configurable<?> c : configurables) {
+			for (Configurable<?> c : configurables.values()) {
 				if (c != cfg && name.equals(c.getName())) {
 					Configurable.configure(c, Util.coerceType(value, c.getDefault().getClass()));
 				}
@@ -298,45 +255,29 @@ public class Configurable<T> {
 		}
 		configuration.putAll(map);
 	}
+	
+	public static void configure(Object obj, String name, Object value) {
+		Configurable<?> c = getInstance(name, obj);
+		if (c != null) {
+			Configurable.configure(c, Util.coerceType(value, c.getDefault().getClass()));
+		}
+	}
 
 	public static void configure(String name, Object value) {
-		Configurable<?> cfg = getInstance(name, null);
-		if (cfg != null) {
-			Configurable.configure(cfg, Util.coerceType(value, cfg.getDefault().getClass()));
-		}
-		for (Configurable<?> c : configurables) {
-			if (c != cfg && name.equals(c.getName())) {
+		for (Configurable<?> c : configurables.values()) {
+			if (name.equals(c.getName())) {
 				Configurable.configure(c, Util.coerceType(value, c.getDefault().getClass()));
 			}
 		}
 		configuration.put(name, value);
 	}
 
-	public static Object getValue(Object obj, String name) {
-		try {
-			Collection<Field> fields = Util.getFields(obj.getClass());
-			for (Field f : fields) {
-				if (Configurable.class.isAssignableFrom(f.getType())) {
-					Configurable<?> c = (Configurable<?>) f.get(obj);
-					if (c.getName().endsWith(name)) {
-						return c.get();
-					}
-				}
-			}
-			return null;
-		} catch (IllegalAccessException e) {
-			throw new IllegalArgumentException(e);
-		}
-	}
-
 	public static void copyConfigurables(Object src, Object dst) {
 		Map<String, Configurable<?>> dstConfigurables = getConfigurables(dst);
 		for (Configurable<?> srcConf : getConfigurables(src).values()) {
-			if (srcConf.isOptimizable()) {
-				Configurable<?> dstConf = dstConfigurables.get(srcConf.getName());
-				if (dstConf != null) {
-					Configurable.configure(dstConf, srcConf.get());
-				}
+			Configurable<?> dstConf = dstConfigurables.get(srcConf.getName());
+			if (dstConf != null) {
+				Configurable.configure(dstConf, srcConf.get());
 			}
 		}
 	}
@@ -344,16 +285,6 @@ public class Configurable<T> {
 	public static List<Configurable<?>> getOptimizableConfigurables(Object obj) {
 		List<Configurable<?>> configurables = new ArrayList<Configurable<?>>();
 		for (Configurable<?> c : getConfigurables(obj).values()) {
-			if (c.isOptimizable()) {
-				configurables.add(c);
-			}
-		}
-		return configurables;
-	}
-
-	public static List<Configurable<?>> getOptimizableConfigurables(Class<?> cls) {
-		List<Configurable<?>> configurables = new ArrayList<Configurable<?>>();
-		for (Configurable<?> c : getConfigurables(cls).values()) {
 			if (c.isOptimizable()) {
 				configurables.add(c);
 			}
@@ -377,22 +308,6 @@ public class Configurable<T> {
 		}
 	}
 
-	public static Map<String, Configurable<?>> getConfigurables(Class<?> cls) {
-		try {
-			Collection<Field> fields = Util.getFields(cls);
-			Map<String, Configurable<?>> configurables = new TreeMap<String, Configurable<?>>();
-			for (Field f : fields) {
-				if (Configurable.class.isAssignableFrom(f.getType())) {
-					Configurable<?> c = (Configurable<?>) f.get(null);
-					configurables.put(f.getName(), c);
-				}
-			}
-			return configurables;
-		} catch (IllegalAccessException e) {
-			throw new IllegalArgumentException(e);
-		}
-	}
-
 	public static Map<String, Object> getConfiguration(Object obj) {
 		try {
 			Collection<Field> fields = Util.getFields(obj.getClass());
@@ -400,22 +315,6 @@ public class Configurable<T> {
 			for (Field f : fields) {
 				if (f.getType().isAssignableFrom(Configurable.class)) {
 					Configurable<?> c = (Configurable<?>) f.get(obj);
-					configurables.put(f.getName(), c.get());
-				}
-			}
-			return configurables;
-		} catch (IllegalAccessException e) {
-			throw new IllegalArgumentException(e);
-		}
-	}
-
-	public static Map<String, Object> getConfiguration(Class<?> cls) {
-		try {
-			Collection<Field> fields = Util.getFields(cls);
-			Map<String, Object> configurables = new TreeMap<String, Object>();
-			for (Field f : fields) {
-				if (f.getType().isAssignableFrom(Configurable.class)) {
-					Configurable<?> c = (Configurable<?>) f.get(null);
 					configurables.put(f.getName(), c.get());
 				}
 			}

@@ -7,8 +7,10 @@ import jtrade.marketfeed.MarketFeed;
 import jtrade.marketfeed.MarketListener;
 import jtrade.trader.OpenOrder;
 import jtrade.trader.OrderListener;
+import jtrade.trader.OrderType;
 import jtrade.trader.Position;
 import jtrade.trader.Trader;
+import jtrade.util.Configurable;
 import jtrade.util.Util;
 
 import org.joda.time.DateTime;
@@ -20,11 +22,9 @@ public abstract class BaseStrategy implements Strategy, MarketListener, OrderLis
 	protected MarketFeed marketFeed;
 	protected Trader trader;
 	protected Recorder recorder;
-	protected boolean active;
 	protected boolean verbose;
 
 	protected BaseStrategy() {
-		this.active = true;
 		this.verbose = false;
 		this.logger = LoggerFactory.getLogger(this.getClass());
 		setRecorder(new Recorder() {
@@ -57,8 +57,10 @@ public abstract class BaseStrategy implements Strategy, MarketListener, OrderLis
 		if (position.getQuantity() == quantity) {
 			return position;
 		}
-		trader.cancelOrder(symbol, null);
-		trader.placeOrder(symbol, quantity - position.getQuantity(), getClass().getSimpleName());
+		if (trader.getOpenOrder(symbol, OrderType.MARKET) == null) {
+			trader.cancelOrder(symbol, null);
+			trader.placeOrder(symbol, quantity - position.getQuantity(), getClass().getSimpleName());
+		}
 		return null;
 	}
 
@@ -101,14 +103,7 @@ public abstract class BaseStrategy implements Strategy, MarketListener, OrderLis
 
 	public void setVerbose(boolean verbose) {
 		this.verbose = verbose;
-	}
-
-	public boolean isActive() {
-		return active;
-	}
-
-	public void setActive(boolean active) {
-		this.active = active;
+		Configurable.configure("jtrade.trader.DummyTrader#VERBOSE", verbose);
 	}
 
 	@Override

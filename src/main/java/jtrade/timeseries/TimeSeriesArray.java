@@ -988,7 +988,7 @@ public class TimeSeriesArray implements TimeSeries {
 			}
 		} else {
 			sb.append("[");
-			DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("yyyyMMdd HH:mm:ss");
+			DateTimeFormatter dateFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
 			for (int i = 0; i < data.length; i++) {
 				sb.append(dateFormatter.print(dates[i]));
 				sb.append(' ');

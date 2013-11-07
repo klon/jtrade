@@ -55,7 +55,7 @@ public class TestDummyTrader {
 
 	@Test()
 	public void testDummyTraderPlaceOrder() {
-		DummyTrader trader = new DummyTrader(marketFeed, true);
+		DummyTrader trader = new DummyTrader(marketFeed);
 		trader.connect();
 
 		final boolean[] listenerCalled = new boolean[4];
