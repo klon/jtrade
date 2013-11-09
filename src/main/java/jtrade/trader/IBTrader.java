@@ -40,6 +40,7 @@ public class IBTrader extends IBMarketFeed implements Trader {
 	protected List<OrderListener> orderListeners;
 	protected Portfolio portfolio;
 	protected Commission commission;
+	protected PerformanceTracker performanceTracker;
 
 	public IBTrader() {
 		this((String) null, -1, (File) null);
@@ -62,6 +63,7 @@ public class IBTrader extends IBMarketFeed implements Trader {
 		openOrdersById = new HashMap<Integer, OpenOrder>();
 		orderListeners = new ArrayList<OrderListener>();
 		portfolio = new Portfolio(this);
+		performanceTracker = new PerformanceTracker(this);
 	}
 
 	@Override
@@ -612,6 +614,11 @@ public class IBTrader extends IBMarketFeed implements Trader {
 	}
 	
 	@Override
+	public PerformanceTracker getPerformanceTracker() {
+		return performanceTracker;
+	}
+	
+	@Override
 	public Commission getCommission() {
 		return commission;
 	}
@@ -654,10 +661,5 @@ public class IBTrader extends IBMarketFeed implements Trader {
 		} finally {
 			trader.disconnect();
 		}
-	}
-
-	@Override
-	public PerformanceTracker getPerformanceTracker() {
-		return null;
 	}
 }
