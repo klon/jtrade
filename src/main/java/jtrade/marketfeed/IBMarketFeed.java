@@ -1205,6 +1205,8 @@ public class IBMarketFeed extends AbstractMarketFeed implements EWrapper {
 				logger.info("Received account message: {}", message);
 				break;
 			case 2104: // Market data farm connection is OK
+			case 2106: // HMDS data farm connection is OK
+			case 2107: // HMDS data farm connection is inactive but should be available upon demand
 			case 2108: // Market data farm connection is inactive but should be available upon demand
 			case 2119: // Market data farm is connecting
 				//logger.info("Connectivity: {}", message);
