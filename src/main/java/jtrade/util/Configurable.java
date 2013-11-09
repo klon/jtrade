@@ -240,17 +240,9 @@ public class Configurable<T> {
 	 */
 	public static void configure(Map<?, ?> map) {
 		for (Map.Entry<?, ?> e : map.entrySet()) {
-			String name = (String) e.getKey();
-			Object value = e.getValue();
-			Configurable<?> cfg = getInstance(name, null);
-			if (cfg != null) {
-				Configurable.configure(cfg, Util.coerceType(value, cfg.getDefault().getClass()));
-			}
-
-			for (Configurable<?> c : configurables.values()) {
-				if (c != cfg && name.equals(c.getName())) {
-					Configurable.configure(c, Util.coerceType(value, c.getDefault().getClass()));
-				}
+			Configurable<?> c = configurables.get((String) e.getKey());
+			if (c != null) {
+				Configurable.configure(c, Util.coerceType(e.getValue(), c.getDefault().getClass()));
 			}
 		}
 		configuration.putAll(map);
@@ -332,7 +324,7 @@ public class Configurable<T> {
 		Properties properties = new Properties(defaults);
 		InputStream is = null;
 		try {
-			is = Configurable.class.getResourceAsStream(filename);
+			is = ClassLoader.getSystemClassLoader().getResourceAsStream(filename);
 			if (is == null) {
 				try {
 					is = new FileInputStream(filename);
@@ -341,7 +333,7 @@ public class Configurable<T> {
 			}
 			if (is != null) {
 				properties.load(is);
-				logger.info("Configurable properties read from {}", filename);
+				logger.info("Configuration read from '{}'", filename);
 				if (logger.isDebugEnabled()) {
 					logger.debug(properties.toString());
 				}
@@ -368,7 +360,7 @@ public class Configurable<T> {
 			configuration = loadProperties(filename, loadProperties("/jtrade.properties", null));
 			configure(configuration);
 		} catch (Throwable t) {
-			throw new IllegalStateException(String.format("Could not read Configurable properties file from %s: %s", filename, t.getMessage()), t);
+			throw new IllegalStateException(String.format("Could not read configuration from '%s': %s", filename, t.getMessage()), t);
 		}
 	}
 }
