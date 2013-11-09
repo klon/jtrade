@@ -186,9 +186,9 @@ public abstract class AbstractMarketFeed implements MarketFeed {
 			}
 		}
 		if (sourceBarSizeSeconds == 0) {
-			sourceBarSizeSeconds = 60;
+			sourceBarSizeSeconds = barSizeSeconds;
 		}
-
+		
 		while (toDate.isAfter(month)) {
 			if (symbol.getExpiry() != null && month.isAfter(symbol.getExpiry())) {
 				break;
