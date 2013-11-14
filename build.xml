@@ -5,7 +5,6 @@
 	<property name="build" value="./build" />
 	<property name="dist" value="./dist" />
 	<property name="deps" value="./lib" />
-	<property name="jar" value="jtrade.jar" />
 	<property name="testsrc" value="./src/test/java" />
 	<property name="testoutput" value="./test/output" />
 
@@ -54,12 +53,13 @@
 
 	<target name="copyresources" description="Copy project resources to build dir" depends="init">
 		<copy todir="${build}" includeEmptyDirs="false">
-			<fileset dir="${src}" excludes="**/*.java" />
+			<fileset dir="${src}" />
 		</copy>
 	</target>
 
 	<target name="jar" description="Create jar" depends="init, compile, copyresources">
-		<jar jarfile="${dist}/${jar}" includes="**/*" excludes="" basedir="${build}" />
+		<jar jarfile="${dist}/${ant.project.name}.jar" includes="**/*" excludes="**/*.java" basedir="${build}" />
+		<jar jarfile="${dist}/${ant.project.name}-sources.jar" includes="**/*" excludes="**/*.class" basedir="${build}" />
 	</target>
 	
 	<target name="pom">
@@ -70,7 +70,7 @@
 	
 	<target name="publish" depends="jar, pom" description="publish to local m2 repos">
 	  <ivy:publish resolver="localmaven-publish" forcedeliver="true" overwrite="true" publishivy="false">
-	    <artifacts pattern="${dist}/[artifact].[ext]"/>
+	    <artifacts pattern="${dist}/[artifact](-[classifier]).[ext]"/>
 	  </ivy:publish>
 	</target>
 

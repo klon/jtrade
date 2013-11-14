@@ -12,7 +12,7 @@
 		<artifact type="source" ext="jar" conf="sources" m:classifier="sources" />
 	</publications>
 
-	<dependencies defaultconfmapping="*->default,sources" defaultconf="default;sources">
+	<dependencies defaultconfmapping="sources->sources();%->default" defaultconf="default;sources">
 		<dependency org="ch.qos.logback" name="logback-classic" rev="1.0.7" />
 		<dependency org="javax.mail" name="mail" rev="1.4.5" />
 		<dependency org="joda-time" name="joda-time" rev="2.1" />
