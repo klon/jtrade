@@ -58,7 +58,6 @@ public class CsvTickFileWriter extends BufferedWriter implements TickWriter {
 		write('\n');
 		write("date,ask,asksize,bid,bidsize,last,lastsize,volume,ask1,asksize1,ask2,asksize2,ask3,asksize3,ask4,asksize4,ask5,asksize5,ask6,asksize6,ask7,asksize7,ask8,asksize8,ask9,asksize9,bid1,bidsize1,bid2,bidsize2,bid3,bidsize3,bid4,bidsize4,bid5,bidsize5,bid6,bidsize6,bid7,bidsize7,bid8,bidsize8,bid9,bidsize9");
 		write('\n');
-		flush();
 	}
 
 	@Override
@@ -118,7 +117,6 @@ public class CsvTickFileWriter extends BufferedWriter implements TickWriter {
 			}
 		}
 		write('\n');
-		flush();
 	}
 
 	@Override

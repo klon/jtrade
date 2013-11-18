@@ -64,7 +64,6 @@ public class CsvBarFileWriter extends BufferedWriter implements BarWriter {
 		write('\n');
 		write("date,open,high,low,close,volume,trades,wap");
 		write('\n');
-		flush();
 	}
 
 	@Override
@@ -89,7 +88,6 @@ public class CsvBarFileWriter extends BufferedWriter implements BarWriter {
 		write(',');
 		write(Double.toString(bar.getPrice()));
 		write('\n');
-		flush();
 	}
 
 	@Override
