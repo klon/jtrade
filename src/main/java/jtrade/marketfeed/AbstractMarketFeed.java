@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractMarketFeed implements MarketFeed {
 	private static final Logger logger = LoggerFactory.getLogger(AbstractMarketFeed.class);
-	public final Configurable<File> DATA_DIR = new Configurable<File>("DATA_DIR", new File("./marketdata"));
+	public final Configurable<File> DATA_DIR = new Configurable<File>("DATA_DIR", new File("~/marketdata"));
 
 	protected File dataDir;
 	protected List<MarketListener> marketListeners;
@@ -40,7 +40,7 @@ public abstract class AbstractMarketFeed implements MarketFeed {
 			dataDir = DATA_DIR.get();
 		}
 		if (dataDir.getPath().startsWith("~")) {
-			dataDir = new File(dataDir.getPath().replace("~", System.getProperty("user.home")));
+			dataDir = new File(dataDir.getPath().replace("~", System.getProperty("user.home").replace("~", "")));
 			logger.warn("{}", dataDir);
 		}
 		try {
