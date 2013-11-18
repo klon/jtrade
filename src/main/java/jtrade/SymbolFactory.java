@@ -365,7 +365,7 @@ public class SymbolFactory {
 	}
 
 	public static Symbol getVIXFutureSymbol(Symbol s, DateTime date) {
-		DateTime expiryDate = getNthFriday(date.plusMonths(1), 3).minusDays(31);
+		DateTime expiryDate = getMostLiquidVIXMonthlyExpiry(date);
 		if (s != null && expiryDate.equals(s.getExpiry())) {
 			return s;
 		}
@@ -510,6 +510,19 @@ public class SymbolFactory {
 		return getMostLiquidMonthlyExpiry(date, 8, 3);
 	}
 
+	public static DateTime getMostLiquidVIXMonthlyExpiry(DateTime date) {
+		if (date == null) {
+			date = new DateTime();
+		}
+		DateTime expiryDate = getNthFriday(date.plusMonths(1), 3).minusDays(31);
+		DateTime volumeShiftDate = expiryDate.minusDays(2);
+
+		if (date.isBefore(volumeShiftDate)) {
+			return expiryDate;
+		}
+		return getNthFriday(date.plusMonths(2), 3).minusDays(31);
+	}
+	
 	public static DateTime getMostLiquidMonthlyExpiry() {
 		return getMostLiquidMonthlyExpiry(new DateTime(), 7, 3);
 	}
