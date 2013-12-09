@@ -69,7 +69,7 @@ public class Portfolio {
 		for (Position p : positions.values()) {
 			Tick lastTick = marketFeed.getLastTick(p.getSymbol());
 			if (lastTick != null) {
-				total += p.getValue(marketFeed.getLastTick(p.getSymbol()).getMidPrice()) * getExchangeRate(p.getSymbol().getCurrency());
+				total += p.getValue(lastTick.getMidPrice()) * getExchangeRate(p.getSymbol().getCurrency());
 			}
 		}
 		return total;

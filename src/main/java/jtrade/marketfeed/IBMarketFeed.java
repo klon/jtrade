@@ -52,7 +52,7 @@ public class IBMarketFeed extends AbstractMarketFeed implements EWrapper {
 	private static final Duration realTimeBarSize = new Duration(5000);
 	private static final int defaultPort = 4000;
 
-	public final Configurable<String> SERVER_HOSTS = new Configurable<String>("SERVER_HOST", "localhost:4000");
+	public final Configurable<String> SERVER_HOSTS = new Configurable<String>("SERVER_HOSTS", "localhost:4000");
 	public final Configurable<Integer> CLIENT_ID = new Configurable<Integer>("CLIENT_ID", 1);
 
 	protected String[] hosts;
